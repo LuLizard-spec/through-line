@@ -209,6 +209,7 @@ async function thread(id){
   if(clips.length){app.appendChild(el(`<span class="label">Clips, in order</span>`));app.appendChild(list)}
 }
 
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
 openDB().then(d=>{db=d;home()});
 })();
 </script>
