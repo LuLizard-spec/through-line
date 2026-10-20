@@ -1,0 +1,216 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Through Line"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png"><link rel="manifest" href="manifest.webmanifest">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*{box-sizing:border-box}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Through Line</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single column journal; threads list -> thread view with player on top, clip strip below. Record red is the one loud color. */
+:root{
+  --bg:#eef1f0; --surface:#f8faf9; --ink:#1d2624; --muted:#5f6c69; --line:#d5dcda;
+  --accent:#2f5d57; --accent-soft:#dbe7e4; --rec:#d23a2e; --rec-ink:#fff;
+  --display:"Young Serif",Georgia,serif; --body:"Figtree",system-ui,-apple-system,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121817; --surface:#1a2220; --ink:#e6ecea; --muted:#94a3a0; --line:#2b3633;
+  --accent:#8cc2b9; --accent-soft:#223330; --rec:#ef5a4d; --rec-ink:#fff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121817; --surface:#1a2220; --ink:#e6ecea; --muted:#94a3a0; --line:#2b3633;
+  --accent:#8cc2b9; --accent-soft:#223330; --rec:#ef5a4d; --rec-ink:#fff; color-scheme:dark}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:16px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;line-height:1.15}
+h1{font-size:2rem}
+h2{font-size:1.6rem}
+.sub{color:var(--muted);margin:4px 0 0;font-size:.95rem}
+button,.btn{font:inherit;cursor:pointer;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 16px;font-weight:500;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+button:focus-visible,.btn:focus-within,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.ghost{background:none;border-color:transparent;color:var(--muted);padding:8px 10px}
+.newrow{display:flex;gap:8px}
+.newrow input{flex:1;min-width:0;font:inherit;padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.card{border:0;border-radius:0;background:none;padding:0;display:flex;flex-direction:column;align-items:stretch;gap:8px;text-align:left}
+.cover{aspect-ratio:1;width:100%;max-width:100%;border-radius:16px;background:var(--accent-soft);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:2.6rem;color:var(--accent)}
+.add .cover{background:none;border:1.5px dashed var(--line);color:var(--muted);font-family:var(--body);font-size:2rem;font-weight:400}
+.tname{font-family:var(--display);font-size:1.1rem;min-width:0;overflow-wrap:anywhere;line-height:1.2}
+.sheet{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px}
+.sheet input[type=text]{font:inherit;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box}
+.pick{display:flex;align-items:center;gap:12px}
+.pick .cover{width:64px;height:64px;font-size:1.2rem;flex:none}
+.pick label{position:relative;overflow:hidden}
+.pick input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.row2{display:flex;gap:8px;justify-content:flex-end}
+.meta{font-family:var(--mono);font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.empty{color:var(--muted);font-size:.95rem;display:flex;flex-direction:column;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:.85rem;padding:6px 12px;background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.player{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:9/16;max-height:62vh;width:100%;max-width:100%;margin:0 auto}
+.player video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+.tc{position:absolute;left:10px;top:10px;font-family:var(--mono);font-size:.75rem;color:#fff;background:rgba(0,0,0,.55);padding:4px 8px;border-radius:6px;font-variant-numeric:tabular-nums}
+.poster{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#cfd8d6;text-align:center;padding:24px;font-size:.95rem}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+.rec{background:var(--rec);border-color:var(--rec);color:var(--rec-ink);position:relative;overflow:hidden;flex:1}
+.rec input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--rec-ink)}
+.clips{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.clips li{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.clips li.on{background:var(--accent-soft);border-radius:8px}
+.clips .n{font-family:var(--mono);font-size:.78rem;color:var(--muted);width:2.2em}
+.clips .when{flex:1;min-width:0}
+.clips .play{border:0;background:none;padding:0;font-weight:500;color:var(--ink);text-align:left}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.note{font-size:.82rem;color:var(--muted)}
+.warn{color:var(--rec)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head><body>
+<div class="wrap" id="app"></div>
+
+<script>
+(function(){
+const app=document.getElementById('app');
+let mem={topics:[],clips:[]};let db=null;
+function openDB(){return new Promise(res=>{try{const r=indexedDB.open('through-line',1);r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('topics',{keyPath:'id'});const c=d.createObjectStore('clips',{keyPath:'id'});c.createIndex('topic','topicId')};r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(e){res(null)}})}
+function tx(store,mode,fn){return new Promise(res=>{try{const t=db.transaction(store,mode);const s=t.objectStore(store);const out=fn(s);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:true);t.onerror=()=>res(null)}catch(e){res(null)}})}
+async function all(store){if(!db)return mem[store];const r=await tx(store,'readonly',s=>s.getAll());return r||[]}
+async function put(store,obj){if(!db){const a=mem[store];const i=a.findIndex(x=>x.id===obj.id);i>=0?a[i]=obj:a.push(obj);return}await tx(store,'readwrite',s=>s.put(obj))}
+async function del(store,id){if(!db){mem[store]=mem[store].filter(x=>x.id!==id);return}await tx(store,'readwrite',s=>s.delete(id))}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const fmt=s=>{s=Math.round(s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(x).padStart(2,'0')};
+const day=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:new Date(t).getFullYear()===new Date().getFullYear()?undefined:'numeric'});
+const el=(h)=>{const d=document.createElement('div');d.innerHTML=h.trim();return d.firstChild};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let urls=[];function url(blob){const u=URL.createObjectURL(blob);urls.push(u);return u}
+function clearUrls(){urls.forEach(u=>URL.revokeObjectURL(u));urls=[]}
+function duration(blob){return new Promise(res=>{const v=document.createElement('video');v.preload='metadata';v.muted=true;const u=URL.createObjectURL(blob);let done=false;const fin=d=>{if(done)return;done=true;URL.revokeObjectURL(u);res(isFinite(d)?d:0)};v.onloadedmetadata=()=>{if(v.duration===Infinity){v.currentTime=1e7;v.ontimeupdate=()=>fin(v.duration)}else fin(v.duration)};v.onerror=()=>fin(0);setTimeout(()=>fin(0),8000);v.src=u})}
+
+async function home(){
+  clearUrls();
+  const topics=await all('topics');const clips=await all('clips');
+  topics.sort((a,b)=>(b.updated||b.created)-(a.updated||a.created));
+  app.innerHTML='';
+  app.appendChild(el(`<header><h1>Through Line</h1><p class="sub">Your video diary, one project per thing you're working through.</p></header>`));
+  const grid=el(`<div class="grid"></div>`);
+  topics.forEach(t=>{const cs=clips.filter(c=>c.topicId===t.id);const total=cs.reduce((a,c)=>a+(c.duration||0),0);
+    const b=el(`<button class="card" type="button"><span class="cover">${t.cover?'':esc((t.name[0]||'?').toUpperCase())}</span><span class="tname">${esc(t.name)}</span><span class="meta">${cs.length} clip${cs.length===1?'':'s'} · ${fmt(total)}</span></button>`);
+    if(t.cover)b.querySelector('.cover').style.backgroundImage=`url(${url(t.cover)})`;
+    b.onclick=()=>thread(t.id);grid.appendChild(b)});
+  const add=el(`<button class="card add" type="button"><span class="cover">+</span><span class="tname">New project</span></button>`);
+  add.onclick=()=>newProject(grid,add);grid.appendChild(add);
+  app.appendChild(grid);
+  if(!topics.length)app.appendChild(el(`<p class="note">Start a project for anything you keep coming back to, like a pattern, a decision, or a relationship. Give it a name and a picture, then record whenever it's on your mind.</p>`));
+  app.appendChild(el(`<p class="note">${db?'Clips are saved privately on this phone. They are not uploaded anywhere.':'<span class="warn">This view can\'t save to the device, so clips will disappear when you close it.</span>'}</p>`));
+}
+
+function claudeUse(n){try{if(window.claude&&window.claude.use)return window.claude.use(n).catch(()=>null)}catch(e){}
+  if(n==='downloads')return Promise.resolve({save:({filename,data})=>{const u=URL.createObjectURL(data instanceof Blob?data:new Blob([data]));const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return Promise.resolve({status:'saved'})}});
+  return Promise.resolve(null)}
+function pickMime(){if(typeof MediaRecorder==='undefined')return null;const c=['video/mp4;codecs=avc1,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];return c.find(m=>{try{return MediaRecorder.isTypeSupported(m)}catch(e){return false}})||null}
+function canExport(){const c=document.createElement('canvas');return !!(c.captureStream&&pickMime()&&(window.AudioContext||window.webkitAudioContext))}
+// Re-records the clips in order onto one canvas + one audio track. Runs in real time.
+function exportThread(clips,total,onProgress){
+  let cancelled=false,finish,curV=null;const done=new Promise(r=>finish=r);
+  (async()=>{
+    const W=720,H=1280,cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
+    const v=curV=document.createElement('video');v.playsInline=true;v.setAttribute('playsinline','');v.preload='auto';
+    const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC();
+    const src=ac.createMediaElementSource(v);const dest=ac.createMediaStreamDestination();src.connect(dest);
+    const stream=cv.captureStream(30);dest.stream.getAudioTracks().forEach(tr=>stream.addTrack(tr));
+    const mime=pickMime();const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:4e6});
+    const chunks=[];rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+    const stopped=new Promise(r=>rec.onstop=r);
+    let before=0,raf=0;
+    const draw=()=>{g.fillStyle='#000';g.fillRect(0,0,W,H);if(v.videoWidth){const s=Math.min(W/v.videoWidth,H/v.videoHeight),w=v.videoWidth*s,h=v.videoHeight*s;g.drawImage(v,(W-w)/2,(H-h)/2,w,h)}onProgress(before+(v.currentTime||0));raf=requestAnimationFrame(draw)};
+    try{await ac.resume();rec.start(1000);draw();
+      for(const c of clips){if(cancelled)break;const u=URL.createObjectURL(c.blob);v.src=u;
+        await new Promise(res=>{v.onended=res;v.onerror=res;v.play().catch(res)});
+        URL.revokeObjectURL(u);before+=c.duration||v.duration||0}
+    }finally{cancelAnimationFrame(raf);if(rec.state!=='inactive')rec.stop();await stopped;ac.close().catch(()=>{})}
+    finish(cancelled||!chunks.length?null:new Blob(chunks,{type:mime.split(';')[0]}));
+  })().catch(()=>finish(Promise.reject({code:'unavailable'})));
+  return {done,cancel(){cancelled=true;if(curV){curV.pause();curV.dispatchEvent(new Event('ended'))}}};
+}
+function newProject(grid,add){
+  if(document.getElementById('sheet'))return;
+  let cover=null;
+  const s=el(`<form class="sheet" id="sheet"><span class="label">New project</span><input type="text" id="pName" placeholder="What's it about?" maxlength="60" aria-label="Project name"><div class="pick"><span class="cover">+</span><label class="btn">Add a picture<input type="file" id="pPic" accept="image/*"></label></div><div class="row2"><button type="button" class="ghost" id="pCancel">Cancel</button><button class="primary" type="submit">Create</button></div></form>`);
+  const prev=s.querySelector('.pick .cover');
+  s.querySelector('#pPic').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;cover=f;prev.textContent='';prev.style.backgroundImage=`url(${url(f)})`});
+  s.querySelector('#pCancel').onclick=()=>s.remove();
+  s.addEventListener('submit',async e=>{e.preventDefault();const n=s.querySelector('#pName').value.trim();if(!n){s.querySelector('#pName').focus();return}
+    const t={id:uid(),name:n,created:Date.now(),cover};await put('topics',t);thread(t.id)});
+  grid.after(s);s.querySelector('#pName').focus();
+}
+
+async function thread(id){
+  clearUrls();
+  const t=(await all('topics')).find(x=>x.id===id);if(!t)return home();
+  const clips=(await all('clips')).filter(c=>c.topicId===id).sort((a,b)=>a.created-b.created);
+  const total=clips.reduce((a,c)=>a+(c.duration||0),0);
+  app.innerHTML='';
+  const top=el(`<div class="top"><button class="ghost" type="button">← Projects</button><button class="ghost" type="button" id="delT">Delete project</button></div>`);
+  top.firstChild.onclick=home;
+  const delT=top.querySelector('#delT');let armed=false;
+  delT.onclick=async()=>{if(!armed){armed=true;delT.textContent='Tap again to delete';delT.classList.add('warn');setTimeout(()=>{armed=false;delT.textContent='Delete project';delT.classList.remove('warn')},4000);return}
+    for(const c of clips)await del('clips',c.id);await del('topics',id);home()};
+  app.appendChild(top);
+  app.appendChild(el(`<header><h2>${esc(t.name)}</h2><p class="meta" style="margin-top:6px">${clips.length} clip${clips.length===1?'':'s'} · ${fmt(total)} total${clips.length?' · since '+day(clips[0].created):''}</p></header>`));
+  const player=el(`<div class="player"><video playsinline controls preload="metadata"></video><div class="tc" hidden></div><div class="poster"></div></div>`);
+  const video=player.querySelector('video'),tc=player.querySelector('.tc'),poster=player.querySelector('.poster');
+  poster.innerHTML=clips.length?`<div style="font-family:var(--display);font-size:1.3rem;color:#fff">${clips.length} clips, ${fmt(total)}</div><div>Tap Play all to watch it straight through</div>`:`<div style="font-family:var(--display);font-size:1.3rem;color:#fff">Nothing here yet</div><div>Tap Record to add your first clip</div>`;
+  app.appendChild(player);
+  const ctr=el(`<div class="controls"><label class="btn rec"><span class="dot"></span>Record<input id="rec" type="file" accept="video/*" capture="user"></label><button class="primary" type="button" id="playAll"${clips.length?'':' disabled'}>▶ Play all</button></div>`);
+  app.appendChild(ctr);
+  const up=el(`<label class="btn ghost" style="position:relative;overflow:hidden;align-self:flex-start">＋ Add videos from your phone<input id="upl" type="file" accept="video/*" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>`);
+  app.appendChild(up);
+  const status=el(`<p class="note" aria-live="polite"></p>`);app.appendChild(status);
+  if(clips.length&&canExport()){
+    const ex=el(`<div class="controls" hidden><button type="button" id="exp">⤓ Save as one video</button><button type="button" class="ghost" id="expStop" hidden>Stop</button></div>`);
+    app.insertBefore(ex,status);
+    claudeUse('downloads').then(dl=>{if(!dl)return;ex.hidden=false;
+      const b=ex.querySelector('#exp'),stop=ex.querySelector('#expStop');let job=null;
+      b.onclick=async()=>{b.disabled=true;stop.hidden=false;video.pause();
+        job=exportThread(clips,total,(done)=>{status.textContent=`Making your video: ${fmt(done)} of ${fmt(total)}. Keep this screen open.`});
+        stop.onclick=()=>job.cancel();
+        try{const blob=await job.done;if(!blob){status.textContent='Stopped.';return}
+          const ext=blob.type.includes('mp4')?'mp4':'webm';
+          status.textContent='Ready. Confirm the save to keep it.';
+          await dl.save({filename:`${t.name.replace(/[^\w\- ]+/g,'').trim()||'project'}.${ext}`,data:blob});
+          status.textContent='Saved.'}
+        catch(err){const c=err&&err.code;status.textContent=c==='declined'?'Not saved.':c==='too_large'?'That video is too large to save here.':"Couldn't make the video in this view. Play all still works."}
+        finally{b.disabled=false;stop.hidden=true}};
+    });
+  }
+  let idx=-1;
+  const list=el(`<ol class="clips"></ol>`);
+  function mark(){[...list.children].forEach((li,i)=>li.classList.toggle('on',i===idx))}
+  function playAt(i){if(i<0||i>=clips.length){idx=-1;tc.hidden=true;mark();poster.hidden=false;poster.innerHTML=`<div style="font-family:var(--display);font-size:1.3rem;color:#fff">That's everything so far</div><div>${clips.length} clips · ${fmt(total)}</div>`;return}
+    idx=i;poster.hidden=true;tc.hidden=false;tc.textContent=`${i+1}/${clips.length} · ${day(clips[i].created)}`;video.src=url(clips[i].blob);video.play().catch(()=>{});mark()}
+  video.addEventListener('ended',()=>{if(idx>=0)playAt(idx+1)});
+  ctr.querySelector('#playAll').onclick=()=>playAt(0);
+  async function save(files,fromLibrary){files=[...(files||[])];if(!files.length)return;
+    for(let i=0;i<files.length;i++){const f=files[i];status.textContent=files.length>1?`Saving ${i+1} of ${files.length}…`:'Saving…';
+      const d=await duration(f);const when=fromLibrary&&f.lastModified?f.lastModified:Date.now();
+      await put('clips',{id:uid(),topicId:id,created:when,duration:d,blob:f,type:f.type})}
+    t.updated=Date.now();await put('topics',t);thread(id)}
+  ctr.querySelector('#rec').addEventListener('change',e=>save(e.target.files,false));
+  up.querySelector('#upl').addEventListener('change',e=>save(e.target.files,true));
+  clips.forEach((c,i)=>{const li=el(`<li><span class="n">${String(i+1).padStart(2,'0')}</span><span class="when"><button class="play" type="button">${day(c.created)}</button></span><span class="meta">${fmt(c.duration)}</span><button class="ghost" type="button" aria-label="Delete clip ${i+1}">✕</button></li>`);
+    li.querySelector('.play').onclick=()=>playAt(i);
+    const x=li.querySelector('.ghost');let a=false;x.onclick=async()=>{if(!a){a=true;x.textContent='Delete?';x.classList.add('warn');setTimeout(()=>{a=false;x.textContent='✕';x.classList.remove('warn')},3000);return}await del('clips',c.id);thread(id)};
+    list.appendChild(li)});
+  if(clips.length){app.appendChild(el(`<span class="label">Clips, in order</span>`));app.appendChild(list)}
+}
+
+openDB().then(d=>{db=d;home()});
+})();
+</script>
+
+</body></html>
