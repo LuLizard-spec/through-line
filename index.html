@@ -146,7 +146,7 @@ async function home(){
   topics.sort((a,b)=>(b.updated||b.created)-(a.updated||a.created));
   app.innerHTML='';
   const STEPS=`<ol class="steps"><li><div><b>Start a project</b><span>Name one topic and give it a picture.</span></div></li><li><div><b>Record whenever it's on your mind</b><span>A few seconds or a few minutes. No editing, ever.</span></div></li><li><div><b>Press Play all</b><span>Every clip plays in order as one video, from the first day to today.</span></div></li></ol>`;
-  app.appendChild(el(`<header class="hero"><h1>Through Line</h1><p class="lede">Time travel with yourself.</p>${topics.length?'':`<p class="sub">Talk to your future self. Hear back from your past self. Pick one thing you're living through and check in whenever it's on your mind. Every clip plays back as one video: the trials, the doubts, the wins, and every version of you in between.</p>`}</header>`));
+  app.appendChild(el(`<header class="hero"><h1>Through Line</h1><p class="lede">Time travel with yourself.</p>${`<p class="sub">Talk to your future self. Hear back from your past self. Pick one thing you're living through and check in whenever it's on your mind. Every clip plays back as one video: the trials, the doubts, the wins, and every version of you in between.</p>`}</header>`));
   if(topics.length)app.appendChild(el(`<details class="how"><summary>How it works</summary>${STEPS}</details>`));
   const grid=el(`<div class="grid"></div>`);
   topics.forEach(t=>{const cs=clips.filter(c=>c.topicId===t.id);const total=cs.reduce((a,c)=>a+(c.duration||0),0);
@@ -156,9 +156,9 @@ async function home(){
   const add=el(`<button class="card add" type="button"><span class="cover">+</span><span class="tname">New project</span></button>`);
   add.onclick=()=>newProject(grid,add);grid.appendChild(add);
   app.appendChild(grid);
-  if(!topics.length){
-    app.insertBefore(el(`<section class="panel"><span class="label">How it works</span>${STEPS}</section>`),grid);
-    const ideas=el(`<section class="uses"><span class="label">Ways to use it. Tap one to start</span></section>`);
+  if(!topics.length)app.insertBefore(el(`<section class="panel"><span class="label">How it works</span>${STEPS}</section>`),grid);
+  {
+    const ideas=el(`<section class="uses"><span class="label">${topics.length?'Start something new':'Ways to use it. Tap one to start'}</span></section>`);
     [['Document a chapter','Building something new, a life event, a trip, a relationship or the end of one, recovering from something hard. Check in on where you are at, the fears and the excitement, then watch your own hero\'s journey play back.','My chapter'],
      ['Talk to your future self','Leave a question, a hope or a worry. Next time, watch it back, answer it, and ask something new.','Dear future me'],
      ['Work through a pattern','Something you are trying to break or get better at. Check in through the moments of clarity, the slips back, the failures and the wins, and watch yourself slowly change. Wanting that video to end well keeps you going.','A pattern I am working on'],
