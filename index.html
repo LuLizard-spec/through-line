@@ -78,10 +78,17 @@ button:focus-visible,.btn:focus-within,input:focus-visible{outline:2px solid var
 const app=document.getElementById('app');
 let mem={topics:[],clips:[]};let db=null;
 function openDB(){return new Promise(res=>{try{const r=indexedDB.open('through-line',1);r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('topics',{keyPath:'id'});const c=d.createObjectStore('clips',{keyPath:'id'});c.createIndex('topic','topicId')};r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(e){res(null)}})}
-function tx(store,mode,fn){return new Promise(res=>{try{const t=db.transaction(store,mode);const s=t.objectStore(store);const out=fn(s);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:true);t.onerror=()=>res(null)}catch(e){res(null)}})}
+function tx(store,mode,fn){return new Promise(res=>{try{const t=db.transaction(store,mode);const s=t.objectStore(store);const out=fn(s);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:true);t.onerror=()=>res(null);t.onabort=()=>res(null)}catch(e){res(null)}})}
 async function all(store){if(!db)return mem[store];const r=await tx(store,'readonly',s=>s.getAll());return r||[]}
-async function put(store,obj){if(!db){const a=mem[store];const i=a.findIndex(x=>x.id===obj.id);i>=0?a[i]=obj:a.push(obj);return}await tx(store,'readwrite',s=>s.put(obj))}
+async function put(store,obj){if(!db){const a=mem[store];const i=a.findIndex(x=>x.id===obj.id);i>=0?a[i]=obj:a.push(obj);return true}return !!(await tx(store,'readwrite',s=>s.put(obj)))}
 async function del(store,id){if(!db){mem[store]=mem[store].filter(x=>x.id!==id);return}await tx(store,'readwrite',s=>s.delete(id))}
+async function plain(f){if(!f)return f;try{return new Blob([await f.arrayBuffer()],{type:f.type||'video/mp4'})}catch(e){return f}}
+async function shareOrDownload(files){
+  try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files});return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'cancelled'}
+  for(const f of files){const u=URL.createObjectURL(f);const a=document.createElement('a');a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
+  return 'downloaded'}
+const mb=b=>b>=1e9?(b/1e9).toFixed(1)+' GB':Math.round(b/1e6)+' MB';
+const NOSPACE="Couldn't save. Your phone may be out of storage. Free up some space, then try again.";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const fmt=s=>{s=Math.round(s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(x).padStart(2,'0')};
 const day=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:new Date(t).getFullYear()===new Date().getFullYear()?undefined:'numeric'});
@@ -107,10 +114,13 @@ async function home(){
   app.appendChild(grid);
   if(!topics.length)app.appendChild(el(`<p class="note">Make a project for anything you want to follow over time: a pattern you're noticing, a life event, a trip, something you're exploring. Give it a name and a picture, then record whenever it's on your mind.</p>`));
   app.appendChild(el(`<p class="note">${db?'Clips are saved privately on this phone. They are not uploaded anywhere.':'<span class="warn">This view can\'t save to the device, so clips will disappear when you close it.</span>'}</p>`));
+  if(topics.length)app.appendChild(el(`<p class="note">Only on this phone until you back it up. Open a project and tap Back up to save its clips to Files or iCloud Drive.</p>`));
+  try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();const p=await (navigator.storage.persisted?navigator.storage.persisted():false);
+    app.appendChild(el(`<p class="meta">Using ${mb(e.usage||0)} · ${p?'protected from automatic clearing':'not yet protected from automatic clearing'}</p>`))}}catch(e){}
 }
 
 function claudeUse(n){try{if(window.claude&&window.claude.use)return window.claude.use(n).catch(()=>null)}catch(e){}
-  if(n==='downloads')return Promise.resolve({save:({filename,data})=>{const u=URL.createObjectURL(data instanceof Blob?data:new Blob([data]));const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return Promise.resolve({status:'saved'})}});
+  if(n==='downloads')return Promise.resolve({save:async({filename,data})=>{const f=new File([data],filename,{type:filename.endsWith('webm')?'video/webm':'video/mp4'});const r=await shareOrDownload([f]);if(r==='cancelled')throw {code:'declined'};return {status:'saved'}}});
   return Promise.resolve(null)}
 function pickMime(){if(typeof MediaRecorder==='undefined')return null;const c=['video/mp4;codecs=avc1,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];return c.find(m=>{try{return MediaRecorder.isTypeSupported(m)}catch(e){return false}})||null}
 function canExport(){const c=document.createElement('canvas');return !!(c.captureStream&&pickMime()&&(window.AudioContext||window.webkitAudioContext))}
@@ -145,7 +155,7 @@ function newProject(grid,add){
   s.querySelector('#pPic').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;cover=f;prev.textContent='';prev.style.backgroundImage=`url(${url(f)})`});
   s.querySelector('#pCancel').onclick=()=>s.remove();
   s.addEventListener('submit',async e=>{e.preventDefault();const n=s.querySelector('#pName').value.trim();if(!n){s.querySelector('#pName').focus();return}
-    const t={id:uid(),name:n,created:Date.now(),cover};await put('topics',t);thread(t.id)});
+    const t={id:uid(),name:n,created:Date.now(),cover:await plain(cover)};if(!(await put('topics',t))){let w=s.querySelector('.warn');if(!w){w=el('<p class="note warn"></p>');s.appendChild(w)}w.textContent=NOSPACE;return}thread(t.id)});
   grid.after(s);s.querySelector('#pName').focus();
 }
 
@@ -171,6 +181,14 @@ async function thread(id){
   const up=el(`<label class="btn ghost" style="position:relative;overflow:hidden;align-self:flex-start">＋ Add videos from your phone<input id="upl" type="file" accept="video/*" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>`);
   app.appendChild(up);
   const status=el(`<p class="note" aria-live="polite"></p>`);app.appendChild(status);
+  if(clips.length){const bk=el(`<button type="button" style="align-self:flex-start">⇪ Back up ${clips.length} clip${clips.length===1?'':'s'} to Files</button>`);app.insertBefore(bk,status);
+    bk.onclick=async()=>{bk.disabled=true;status.textContent='Preparing backup…';
+      const safe=(t.name.replace(/[^\w\- ]+/g,'').trim()||'project');
+      const files=clips.map((c,i)=>{const ext=(c.type||c.blob.type||'').includes('quicktime')?'mov':(c.type||c.blob.type||'').includes('webm')?'webm':'mp4';
+        const d=new Date(c.created);const stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        return new File([c.blob],`${safe} ${String(i+1).padStart(2,'0')} ${stamp}.${ext}`,{type:c.blob.type||'video/mp4'})});
+      const r=await shareOrDownload(files);
+      status.textContent=r==='shared'?'Choose "Save to Files" to keep the backup. To restore, use Add videos from your phone and pick these files.':r==='cancelled'?'Backup cancelled.':'Backup downloaded.';bk.disabled=false}}
   if(clips.length&&canExport()){
     const ex=el(`<div class="controls" hidden><button type="button" id="exp">⤓ Save as one video</button><button type="button" class="ghost" id="expStop" hidden>Stop</button></div>`);
     app.insertBefore(ex,status);
@@ -198,8 +216,11 @@ async function thread(id){
   async function save(files,fromLibrary){files=[...(files||[])];if(!files.length)return;
     for(let i=0;i<files.length;i++){const f=files[i];status.textContent=files.length>1?`Saving ${i+1} of ${files.length}…`:'Saving…';
       const d=await duration(f);const when=fromLibrary&&f.lastModified?f.lastModified:Date.now();
-      await put('clips',{id:uid(),topicId:id,created:when,duration:d,blob:f,type:f.type})}
+      const c={id:uid(),topicId:id,created:when,duration:d,blob:await plain(f),type:f.type};
+      const ok=await put('clips',c)&&(!db||(await all('clips')).some(x=>x.id===c.id));
+      if(!ok){status.innerHTML='';status.appendChild(el(`<span class="warn">${NOSPACE}</span>`));e_reset();return}}
     t.updated=Date.now();await put('topics',t);thread(id)}
+  function e_reset(){ctr.querySelector('#rec').value='';up.querySelector('#upl').value=''}
   ctr.querySelector('#rec').addEventListener('change',e=>save(e.target.files,false));
   up.querySelector('#upl').addEventListener('change',e=>save(e.target.files,true));
   clips.forEach((c,i)=>{const li=el(`<li><span class="n">${String(i+1).padStart(2,'0')}</span><span class="when"><button class="play" type="button">${day(c.created)}</button></span><span class="meta">${fmt(c.duration)}</span><button class="ghost" type="button" aria-label="Delete clip ${i+1}">✕</button></li>`);
