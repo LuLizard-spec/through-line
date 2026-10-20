@@ -96,7 +96,7 @@ async function home(){
   const topics=await all('topics');const clips=await all('clips');
   topics.sort((a,b)=>(b.updated||b.created)-(a.updated||a.created));
   app.innerHTML='';
-  app.appendChild(el(`<header><h1>Through Line</h1><p class="sub">Your video diary, one project per thing you're working through.</p></header>`));
+  app.appendChild(el(`<header><h1>Through Line</h1><p class="sub">A video diary, one project per topic.</p></header>`));
   const grid=el(`<div class="grid"></div>`);
   topics.forEach(t=>{const cs=clips.filter(c=>c.topicId===t.id);const total=cs.reduce((a,c)=>a+(c.duration||0),0);
     const b=el(`<button class="card" type="button"><span class="cover">${t.cover?'':esc((t.name[0]||'?').toUpperCase())}</span><span class="tname">${esc(t.name)}</span><span class="meta">${cs.length} clip${cs.length===1?'':'s'} · ${fmt(total)}</span></button>`);
@@ -105,7 +105,7 @@ async function home(){
   const add=el(`<button class="card add" type="button"><span class="cover">+</span><span class="tname">New project</span></button>`);
   add.onclick=()=>newProject(grid,add);grid.appendChild(add);
   app.appendChild(grid);
-  if(!topics.length)app.appendChild(el(`<p class="note">Start a project for anything you keep coming back to, like a pattern, a decision, or a relationship. Give it a name and a picture, then record whenever it's on your mind.</p>`));
+  if(!topics.length)app.appendChild(el(`<p class="note">Make a project for anything you want to follow over time: a pattern you're noticing, a life event, a trip, something you're exploring. Give it a name and a picture, then record whenever it's on your mind.</p>`));
   app.appendChild(el(`<p class="note">${db?'Clips are saved privately on this phone. They are not uploaded anywhere.':'<span class="warn">This view can\'t save to the device, so clips will disappear when you close it.</span>'}</p>`));
 }
 
@@ -140,7 +140,7 @@ function exportThread(clips,total,onProgress){
 function newProject(grid,add){
   if(document.getElementById('sheet'))return;
   let cover=null;
-  const s=el(`<form class="sheet" id="sheet"><span class="label">New project</span><input type="text" id="pName" placeholder="What's it about?" maxlength="60" aria-label="Project name"><div class="pick"><span class="cover">+</span><label class="btn">Add a picture<input type="file" id="pPic" accept="image/*"></label></div><div class="row2"><button type="button" class="ghost" id="pCancel">Cancel</button><button class="primary" type="submit">Create</button></div></form>`);
+  const s=el(`<form class="sheet" id="sheet"><span class="label">New project</span><input type="text" id="pName" placeholder="Name this topic" maxlength="60" aria-label="Project name"><div class="pick"><span class="cover">+</span><label class="btn">Add a picture<input type="file" id="pPic" accept="image/*"></label></div><div class="row2"><button type="button" class="ghost" id="pCancel">Cancel</button><button class="primary" type="submit">Create</button></div></form>`);
   const prev=s.querySelector('.pick .cover');
   s.querySelector('#pPic').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;cover=f;prev.textContent='';prev.style.backgroundImage=`url(${url(f)})`});
   s.querySelector('#pCancel').onclick=()=>s.remove();
