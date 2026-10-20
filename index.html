@@ -159,9 +159,10 @@ async function home(){
   if(!topics.length){
     app.insertBefore(el(`<section class="panel"><span class="label">How it works</span>${STEPS}</section>`),grid);
     const ideas=el(`<section class="uses"><span class="label">Ways to use it. Tap one to start</span></section>`);
-    [['A journey','Trying something hard, building something new, a move, a trip, a new relationship. Say what you hope for at the start, check in along the way, and see how it really went.','My journey'],
-     ['Messages through time','Talk to your future self every six months, or leave messages for someone you love, like your kid as they grow up, on whatever rhythm you choose.','Messages through time'],
-     ['Regular check-ins','A pattern you are working on, something you are trying to overcome, a new idea. Keep checking in to see the ups and downs and how far you have come.','My check-ins']
+    [['Document a chapter','A move, a trip, a new relationship, something hard you are building. Check in as it unfolds, then watch the whole story play back.','My chapter'],
+     ['Talk to your future self','Leave a question, a hope or a worry. Next time, watch it back, answer it, and ask something new.','Dear future me'],
+     ['Work through a pattern','Something you keep coming back to or are trying to overcome. See the ups and downs side by side, and how far you have come.','A pattern I am working on'],
+     ['Build a gift over time','A message to your kid every birthday, or to someone you love every year. One day, give them the whole thing as one video.','For someone I love']
     ].forEach(([title,line,name])=>{
       const b=el(`<button class="use" type="button"><b>${esc(title)}</b><span>${esc(line)}</span></button>`);
       b.onclick=async()=>{const t={id:uid(),name,created:Date.now()};if(await put('topics',t))thread(t.id)};ideas.appendChild(b)});
