@@ -88,7 +88,7 @@ async function put(store,obj){if(!db){const a=mem[store];const i=a.findIndex(x=>
 async function del(store,id){if(!db){mem[store]=mem[store].filter(x=>x.id!==id);return}await tx(store,'readwrite',s=>s.delete(id))}
 async function plain(f){if(!f)return f;try{return new Blob([await f.arrayBuffer()],{type:f.type||'video/mp4'})}catch(e){return f}}
 async function shareOrDownload(files){
-  try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files});return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'cancelled'}
+  try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files});return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'cancelled';if(e&&e.name==='NotAllowedError')return 'blocked'}
   for(const f of files){const u=URL.createObjectURL(f);const a=document.createElement('a');a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
   return 'downloaded'}
 const mb=b=>b>=1e9?(b/1e9).toFixed(1)+' GB':Math.round(b/1e6)+' MB';
@@ -215,20 +215,24 @@ async function thread(id){
         const d=new Date(c.created);const stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
         return new File([c.blob],`${safe} ${String(i+1).padStart(2,'0')} ${stamp}.${ext}`,{type:c.blob.type||'video/mp4'})});
       const r=await shareOrDownload(files);
-      status.textContent=r==='shared'?'Choose "Save to Files" to keep the backup. To restore, use Add videos from your phone and pick these files.':r==='cancelled'?'Backup cancelled.':'Backup downloaded.';bk.disabled=false}}
+      status.textContent=r==='shared'?'Backup sent. Check Files or Photos to confirm it is there. To restore, use Add videos from your phone.':r==='cancelled'?'Backup cancelled.':r==='blocked'?'Your phone blocked the backup. Tap Back up again.':'Download started. If nothing appeared, tap Back up again.';bk.disabled=false}}
   if(clips.length&&canExport()){
     const ex=el(`<div class="controls" hidden><button type="button" id="exp">⤓ Save as one video</button><button type="button" class="ghost" id="expStop" hidden>Stop</button></div>`);
     app.insertBefore(ex,status);
     claudeUse('downloads').then(dl=>{if(!dl)return;ex.hidden=false;
       const b=ex.querySelector('#exp'),stop=ex.querySelector('#expStop');let job=null;
-      b.onclick=async()=>{b.disabled=true;stop.hidden=false;video.pause();
+      b.onclick=async()=>{ex.querySelectorAll('.primary').forEach(x=>x.remove());b.disabled=true;stop.hidden=false;video.pause();
         job=exportThread(clips,total,(done)=>{status.textContent=`Making your video: ${fmt(done)} of ${fmt(total)}. Keep this screen open.`});
         stop.onclick=()=>job.cancel();
         try{const blob=await job.done;if(!blob){status.textContent='Stopped.';return}
           const ext=blob.type.includes('mp4')?'mp4':'webm';
-          status.textContent='Ready. Confirm the save to keep it.';
-          await dl.save({filename:`${t.name.replace(/[^\w\- ]+/g,'').trim()||'project'}.${ext}`,data:blob});
-          status.textContent='Saved.'}
+          const fname=`${t.name.replace(/[^\w\- ]+/g,'').trim()||'project'}.${ext}`;
+          const file=new File([blob],fname,{type:blob.type||'video/mp4'});
+          status.textContent='Your video is ready. Tap Save video, then choose Save Video (Photos) or Save to Files.';
+          const sv=el(`<button class="primary" type="button">⤓ Save video</button>`);ex.appendChild(sv);
+          sv.onclick=async()=>{const r=await shareOrDownload([file]);
+            status.textContent=r==='shared'?'Done. Check Photos or Files to confirm it is there.':r==='cancelled'?'Not saved yet. Tap Save video to try again.':r==='blocked'?'Your phone blocked the save. Tap Save video again.':'Download started. If nothing appeared, tap Save video again.'};
+          return}
         catch(err){const c=err&&err.code;status.textContent=c==='declined'?'Not saved.':c==='too_large'?'That video is too large to save here.':"Couldn't make the video in this view. Play all still works."}
         finally{b.disabled=false;stop.hidden=true}};
     });
