@@ -44,6 +44,10 @@ button:focus-visible,.btn:focus-within,input:focus-visible{outline:2px solid var
 .pick .cover{width:64px;height:64px;font-size:1.2rem;flex:none}
 .pick label{position:relative;overflow:hidden}
 .pick input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.recorder{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px}
+.recorder video{width:100%;max-width:100%;border-radius:12px;background:#000;transform:scaleX(-1);aspect-ratio:16/9;object-fit:cover}
+.recorder .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.recorder .clock{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--rec);margin-left:auto}
 .row2{display:flex;gap:8px;justify-content:flex-end}
 .meta{font-family:var(--mono);font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .empty{color:var(--muted);font-size:.95rem;display:flex;flex-direction:column;gap:10px}
@@ -89,6 +93,29 @@ async function shareOrDownload(files){
   return 'downloaded'}
 const mb=b=>b>=1e9?(b/1e9).toFixed(1)+' GB':Math.round(b/1e6)+' MB';
 const NOSPACE="Couldn't save. Your phone may be out of storage. Free up some space, then try again.";
+const touch=(navigator.maxTouchPoints||0)>0&&/iPhone|iPad|Android|Mobile/i.test(navigator.userAgent+' '+(navigator.platform||''));
+const liveCam=!touch&&!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)&&typeof MediaRecorder!=='undefined';
+function camMime(){const c=['video/mp4;codecs=avc1,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];return c.find(m=>{try{return MediaRecorder.isTypeSupported(m)}catch(e){return false}})||''}
+function openRecorder(anchor,onDone){
+  if(document.getElementById('recbox'))return;
+  const box=el(`<div class="recorder" id="recbox"><video autoplay muted playsinline></video><div class="bar"><button type="button" class="rec" id="rgo"><span class="dot"></span>Start</button><button type="button" class="ghost" id="rx">Cancel</button><span class="clock" id="rclock"></span></div><p class="note" id="rmsg">Allow camera and microphone access when your browser asks.</p></div>`);
+  anchor.after(box);
+  const v=box.querySelector('video'),go=box.querySelector('#rgo'),msg=box.querySelector('#rmsg'),clock=box.querySelector('#rclock');
+  let stream=null,rec=null,chunks=[],t0=0,tick=0;
+  const stopAll=()=>{clearInterval(tick);if(stream)stream.getTracks().forEach(t=>t.stop());box.remove()};
+  box.querySelector('#rx').onclick=()=>{if(rec&&rec.state!=='inactive'){rec.onstop=null;rec.stop()}stopAll()};
+  navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}},audio:true}).then(st=>{stream=st;v.srcObject=st;msg.textContent='Ready when you are.'}).catch(()=>{msg.innerHTML='<span class="warn">Camera access was blocked. Allow the camera for this site in your browser settings, or use Add videos instead.</span>';go.disabled=true});
+  go.onclick=()=>{
+    if(!stream)return;
+    if(!rec||rec.state==='inactive'){
+      const m=camMime();rec=new MediaRecorder(stream,m?{mimeType:m}:undefined);chunks=[];
+      rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+      rec.onstop=()=>{const type=(rec.mimeType||m||'video/webm').split(';')[0];const blob=new Blob(chunks,{type});const secs=(Date.now()-t0)/1000;stopAll();onDone(blob,secs)};
+      rec.start(1000);t0=Date.now();go.innerHTML='<span class="dot"></span>Stop';msg.textContent='Recording.';
+      tick=setInterval(()=>{clock.textContent=fmt((Date.now()-t0)/1000)},250);
+    }else{rec.stop()}
+  };
+}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const fmt=s=>{s=Math.round(s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(x).padStart(2,'0')};
 const day=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:new Date(t).getFullYear()===new Date().getFullYear()?undefined:'numeric'});
@@ -113,8 +140,8 @@ async function home(){
   add.onclick=()=>newProject(grid,add);grid.appendChild(add);
   app.appendChild(grid);
   if(!topics.length)app.appendChild(el(`<p class="note">Make a project for anything you want to follow over time: a pattern you're noticing, a life event, a trip, something you're exploring. Give it a name and a picture, then record whenever it's on your mind.</p>`));
-  app.appendChild(el(`<p class="note">${db?'Clips are saved privately on this phone. They are not uploaded anywhere.':'<span class="warn">This view can\'t save to the device, so clips will disappear when you close it.</span>'}</p>`));
-  if(topics.length)app.appendChild(el(`<p class="note">Only on this phone until you back it up. Open a project and tap Back up to save its clips to Files or iCloud Drive.</p>`));
+  app.appendChild(el(`<p class="note">${db?'Clips are saved privately on this device. They are not uploaded anywhere.':'<span class="warn">This view can\'t save to the device, so clips will disappear when you close it.</span>'}</p>`));
+  if(topics.length)app.appendChild(el(`<p class="note">Only on this device until you back it up. Open a project and tap Back up to save its clips to Files or iCloud Drive.</p>`));
   try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();const p=await (navigator.storage.persisted?navigator.storage.persisted():false);
     app.appendChild(el(`<p class="meta">Using ${mb(e.usage||0)} · ${p?'protected from automatic clearing':'not yet protected from automatic clearing'}</p>`))}}catch(e){}
 }
@@ -222,6 +249,14 @@ async function thread(id){
     t.updated=Date.now();await put('topics',t);thread(id)}
   function e_reset(){ctr.querySelector('#rec').value='';up.querySelector('#upl').value=''}
   ctr.querySelector('#rec').addEventListener('change',e=>save(e.target.files,false));
+  if(liveCam){const lbl=ctr.querySelector('label.rec');lbl.querySelector('input').remove();
+    lbl.addEventListener('click',()=>openRecorder(ctr,async(blob,secs)=>{let d=await duration(blob);if(!d)d=secs;await saveBlob(blob,d)}));
+    lbl.setAttribute('role','button');lbl.tabIndex=0;lbl.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();lbl.click()}})}
+  async function saveBlob(blob,d){status.textContent='Saving…';
+    const c={id:uid(),topicId:id,created:Date.now(),duration:d,blob,type:blob.type};
+    const ok=await put('clips',c)&&(!db||(await all('clips')).some(x=>x.id===c.id));
+    if(!ok){status.innerHTML='';status.appendChild(el(`<span class="warn">${NOSPACE}</span>`));return}
+    t.updated=Date.now();await put('topics',t);thread(id)}
   up.querySelector('#upl').addEventListener('change',e=>save(e.target.files,true));
   clips.forEach((c,i)=>{const li=el(`<li><span class="n">${String(i+1).padStart(2,'0')}</span><span class="when"><button class="play" type="button">${day(c.created)}</button></span><span class="meta">${fmt(c.duration)}</span><button class="ghost" type="button" aria-label="Delete clip ${i+1}">✕</button></li>`);
     li.querySelector('.play').onclick=()=>playAt(i);
