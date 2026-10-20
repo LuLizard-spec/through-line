@@ -159,9 +159,9 @@ async function home(){
   if(!topics.length){
     app.insertBefore(el(`<section class="panel"><span class="label">How it works</span>${STEPS}</section>`),grid);
     const ideas=el(`<section class="uses"><span class="label">Ways to use it. Tap one to start</span></section>`);
-    [['Dear future me','Ask your future self questions. Next time, watch them back, answer, and ask new ones.','Dear future me'],
-     ['Before and after','Before something big or risky, like a new relationship or a hard goal, record your hopes, fears and predictions. Come back after and tell yourself how it really went.','Before and after'],
-     ['A journey, start to finish','Check in at each moment of something you are going through: a move, a new chapter, a trip.','My journey'],
+    [['A journey, start to finish','A move, a new relationship, a trip, a life event, or something hard you are building. Check in at every step, then watch the whole thing unfold.','My journey'],
+     ['Before and after','Before you take a big risk, tell your future self what you think will happen. Come back after and tell your past self how it really went.','Before and after'],
+     ['Dear future me','Ask your future self questions. Next time, watch them back, answer, and ask new ones.','Dear future me'],
      ['The ups and downs','Working through a pattern, or on a roller coaster about something? Keep checking in, so you can actually see your progress and remember what you learned.','The ups and downs'],
      ['A regular check-in','Monthly, yearly, or every birthday. Watch years of yourself in one sitting.','My yearly check-in']
     ].forEach(([title,line,name])=>{
