@@ -159,9 +159,9 @@ async function home(){
   if(!topics.length){
     app.insertBefore(el(`<section class="panel"><span class="label">How it works</span>${STEPS}</section>`),grid);
     const ideas=el(`<section class="uses"><span class="label">Ways to use it. Tap one to start</span></section>`);
-    [['Document a chapter','Building something new, a life event, a trip, a relationship, or the end of one. Check in on where you are at, the fears and the excitement, then watch your own hero\'s journey play back.','My chapter'],
+    [['Document a chapter','Building something new, a life event, a trip, a relationship or the end of one, recovering from something hard. Check in on where you are at, the fears and the excitement, then watch your own hero\'s journey play back.','My chapter'],
      ['Talk to your future self','Leave a question, a hope or a worry. Next time, watch it back, answer it, and ask something new.','Dear future me'],
-     ['Work through something hard','Recovering from something awful, or a pattern you keep coming back to. See the ups and downs side by side, and how far you have come.','My recovery'],
+     ['Work through a pattern','Something you are trying to break or get better at. Check in through the moments of clarity, the slips back, the failures and the wins, and watch yourself slowly change. Wanting that video to end well keeps you going.','A pattern I am working on'],
      ['Build a gift over time','Messages to your kids as they grow up, or to a partner, on whatever rhythm you choose. One day, give them the whole thing as one video.','For someone I love']
     ].forEach(([title,line,name])=>{
       const b=el(`<button class="use" type="button"><b>${esc(title)}</b><span>${esc(line)}</span></button>`);
