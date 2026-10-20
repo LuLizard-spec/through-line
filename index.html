@@ -82,6 +82,10 @@ button:focus-visible,.btn:focus-within,input:focus-visible{outline:2px solid var
 .story{font-family:var(--display);font-size:1.05rem;line-height:1.4;margin:0;color:var(--ink)}
 details.how summary{cursor:pointer;color:var(--accent);font-weight:500;font-size:.92rem}
 details.how[open] summary{margin-bottom:12px}
+.uses{display:flex;flex-direction:column;gap:8px}
+.use{border-radius:16px;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;padding:12px 16px}
+.use b{font-family:var(--display);font-weight:400;font-size:1.1rem}
+.use span{color:var(--muted);font-size:.9rem;font-weight:400}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -142,7 +146,7 @@ async function home(){
   topics.sort((a,b)=>(b.updated||b.created)-(a.updated||a.created));
   app.innerHTML='';
   const STEPS=`<ol class="steps"><li><div><b>Start a project</b><span>Name one topic and give it a picture.</span></div></li><li><div><b>Record whenever it's on your mind</b><span>A few seconds or a few minutes. No editing, ever.</span></div></li><li><div><b>Press Play all</b><span>Every clip plays in order as one video, from the first day to today.</span></div></li></ol>`;
-  app.appendChild(el(`<header class="hero"><h1>Through Line</h1><p class="lede">See how you change over time.</p>${topics.length?'':`<p class="sub">A video diary for one thing at a time: a relationship, a trip, a pattern you keep noticing, a message you record every birthday. Add a clip whenever it's on your mind, and it always plays back as one continuous video.</p>`}</header>`));
+  app.appendChild(el(`<header class="hero"><h1>Through Line</h1><p class="lede">Time travel with yourself.</p>${topics.length?'':`<p class="sub">Talk to your future self. Hear back from your past self. Pick one thing you're living through and check in whenever it's on your mind. Every clip plays back as one video: the trials, the doubts, the wins, and every version of you in between.</p>`}</header>`));
   if(topics.length)app.appendChild(el(`<details class="how"><summary>How it works</summary>${STEPS}</details>`));
   const grid=el(`<div class="grid"></div>`);
   topics.forEach(t=>{const cs=clips.filter(c=>c.topicId===t.id);const total=cs.reduce((a,c)=>a+(c.duration||0),0);
@@ -154,12 +158,16 @@ async function home(){
   app.appendChild(grid);
   if(!topics.length){
     app.insertBefore(el(`<section class="panel"><span class="label">How it works</span>${STEPS}</section>`),grid);
-    const ideas=el(`<section class="empty"><span class="label">Need an idea? Tap one to start</span><div class="chips"></div></section>`);
-    [['My birthday message, every year','Birthday messages'],['A new relationship, start to wherever it goes','This relationship'],['A trip, moment by moment','My trip'],['A pattern I keep noticing','A pattern I keep noticing'],['What I think will happen, and what did','Predictions']].forEach(([label,name])=>{
-      const b=el(`<button class="chip" type="button">${esc(label)}</button>`);
-      b.onclick=async()=>{const t={id:uid(),name,created:Date.now()};if(await put('topics',t))thread(t.id)};ideas.querySelector('.chips').appendChild(b)});
+    const ideas=el(`<section class="uses"><span class="label">Ways to use it. Tap one to start</span></section>`);
+    [['Dear future me','Ask your future self questions. Next time, watch them back, answer, and ask new ones.','Dear future me'],
+     ['Before and after','Before something big or risky, like a new relationship or a hard goal, record your hopes, fears and predictions. Come back after and tell yourself how it really went.','Before and after'],
+     ['A journey, start to finish','Check in at each moment of something you are going through: a move, a new chapter, a trip.','My journey'],
+     ['The ups and downs','Working through a pattern, or on a roller coaster about something? Keep checking in, so you can actually see your progress and remember what you learned.','The ups and downs'],
+     ['A regular check-in','Monthly, yearly, or every birthday. Watch years of yourself in one sitting.','My yearly check-in']
+    ].forEach(([title,line,name])=>{
+      const b=el(`<button class="use" type="button"><b>${esc(title)}</b><span>${esc(line)}</span></button>`);
+      b.onclick=async()=>{const t={id:uid(),name,created:Date.now()};if(await put('topics',t))thread(t.id)};ideas.appendChild(b)});
     app.appendChild(ideas);
-    app.appendChild(el(`<section class="panel"><p class="story">A dad filmed his daughter singing happy birthday to her mom every year, then one day played them all back in a row. That feeling is what this is for.</p></section>`));
   }
   app.appendChild(el(`<p class="note">${db?'Private by default. Your clips stay on this phone and are never uploaded.':'<span class="warn">This view can\'t save to the device, so clips will disappear when you close it.</span>'}</p>`));
   if(topics.length)app.appendChild(el(`<p class="note">Only on this device until you back it up. Open a project and tap Back up to save its clips to Files or iCloud Drive.</p>`));
